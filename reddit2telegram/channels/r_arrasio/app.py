@@ -42,7 +42,7 @@ def update_promotion_order():
             'setting': SETTING_NAME
         },
         {
-            '$set':
+            '$set': 
             {
                 'promotion_order': submodules_and_dates
             }
@@ -54,7 +54,7 @@ def what_submodule():
     now = datetime.now()
     all_submodules = get_all_public_submodules()
     all_submodules.remove('reddit2telegram')
-    if now.weekday() == 6:
+    if now.weekday() == 6:  # if Sunday then random
         return random.choice(all_submodules)
 
     config = get_config()
@@ -71,6 +71,7 @@ def what_submodule():
         if (submodule not in already_promoted) and (submodule in all_submodules):
             return submodule
 
+    # If every is promoted.
     settings.find_one_and_update(
         {
             'setting': SETTING_NAME
@@ -111,7 +112,7 @@ def make_nice_submission(submission, r2t, submodule_name_to_promte, extra_ending
             tags_string = ' '.join(tags)
     if extra_ending is None:
         extra_ending = ''
-    submission.title
+    submission.title  # to make it non-lazy
     result = r2t.send_simple(submission,
         channel_to_promote=what_channel(submodule_name_to_promte),
         date=datetime.utcfromtimestamp(submission.created_utc).strftime('%Y %b %d'),
@@ -128,10 +129,11 @@ def make_nice_submission(submission, r2t, submodule_name_to_promte, extra_ending
     return result
 
 
-submodule_name_to_promte = 'r_arrasio'
+submodule_name_to_promte = what_submodule()
 
-subreddit = 'Arrasio'
-t_channel = '@Arras_io'
+
+subreddit = what_subreddit(submodule_name_to_promte)
+t_channel = '@reddit2telegram'
 submissions_ranking = 'top'
 submissions_limit = 1000
 
@@ -141,14 +143,14 @@ def send_post(submission, r2t):
     today = datetime(now.year, now.month, now.day)
     taday_date_string = today.strftime('%Y %b %d')
     random_number = abs(int(hashlib.sha1(taday_date_string.encode('utf-8')).hexdigest(), 16))
-
+    # Twice a week update promotion order
     if (now.weekday() == 5) and (now.hour in [0, 23]) and (now.minute == 1):
         update_promotion_order()
         return SupplyResult.STOP_THIS_SUPPLY
-
+    # If Saturday then no promotion
     if now.weekday() == 5:
         return SupplyResult.STOP_THIS_SUPPLY
-
+    # If weekday or Sunday then regular promotion once a day
     if (now.weekday() != 5) and ((now.hour == random_number % 24)):
         result = make_nice_submission(submission, r2t, submodule_name_to_promte)
         if result == SupplyResult.SUCCESSFULLY:
@@ -169,5 +171,4 @@ def send_post(submission, r2t):
                 )
             return SupplyResult.SUCCESSFULLY
         return result
-
     return SupplyResult.STOP_THIS_SUPPLY
